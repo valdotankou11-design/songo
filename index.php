@@ -243,6 +243,57 @@ session_start();
       color: #27AE60;
       border: 1px solid rgba(39,174,96,0.3);
     }
+  
+    /* ── Bouton Règles ── */
+    .btn-regles {
+      display: block;
+      margin: 16px auto 0;
+      background: transparent;
+      border: 1.5px solid rgba(232,184,75,0.35);
+      color: rgba(245,230,200,0.65);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-regles:hover { border-color: var(--or); color: var(--or); }
+
+    /* ── Modale Règles ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(20,8,2,0.85);
+      z-index:100; align-items:center; justify-content:center; padding:20px; }
+    .modal-overlay.visible { display:flex; }
+    .modal { background:linear-gradient(160deg,#5C3317,#2C1A0E); border:2px solid var(--or);
+      border-radius:18px; padding:30px 32px; max-width:480px; width:100%;
+      box-shadow:0 20px 60px rgba(0,0,0,0.7); max-height:85vh; overflow-y:auto; }
+    .modal h2 { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--or);
+      margin-bottom:14px; text-align:center; }
+    .modal p, .modal li { font-size:0.84rem; line-height:1.75;
+      color:rgba(245,230,200,0.85); margin-bottom:8px; }
+    .modal ul { padding-left:20px; margin-bottom:12px; }
+    .modal .section-titre { font-weight:700; color:var(--or); margin-top:14px;
+      margin-bottom:4px; font-size:0.86rem; letter-spacing:0.05em; }
+    .modal-btn { margin-top:18px; background:var(--or); color:#2C1A0E; border:none;
+      padding:10px 28px; border-radius:8px; font-weight:700; font-size:0.82rem;
+      cursor:pointer; display:block; margin-left:auto; margin-right:auto; }
+  
+  @media (max-width: 480px) {
+    #pwa-banner {
+      bottom: 0 !important;
+      right: 0 !important;
+      left: 0 !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      border-radius: 0 !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: none !important;
+    }
+  }
   </style>
 </head>
 <body>
@@ -298,6 +349,43 @@ session_start();
   </div>
 
   <div id="msg-erreur"></div>
+</div>
+
+
+<!-- Bouton Règles -->
+<button class="btn-regles" onclick="ouvrirRegles()">? Règles du jeu</button>
+
+<!-- Modale Règles -->
+<div class="modal-overlay" id="modal-regles">
+  <div class="modal">
+    <h2>Règles du Songo</h2>
+    <p class="section-titre">🎯 Objectif</p>
+    <p>Récolter au moins <strong>40 graines</strong> sur les 70 du plateau.</p>
+    <p class="section-titre">🏁 Mise en place</p>
+    <p>2 rangées de 7 cases, 5 graines par case. Joueur Sud commence toujours.</p>
+    <p class="section-titre">▶ Mécanique</p>
+    <p>Choisissez une case de votre rangée. Prenez toutes ses graines et semez-les une à une : droite→gauche dans votre rangée, puis gauche→droite chez l'adversaire (en boucle).</p>
+    <p class="section-titre">✂ Récoltes</p>
+    <ul>
+      <li>Uniquement dans le camp adverse (sauf case 1 adverse).</li>
+      <li>Prise si la dernière graine tombe dans une case adverse à 1, 2 ou 3 graines → vous prenez 2, 3 ou 4.</li>
+      <li>Prise en chaîne sur les cases précédentes remplissant la condition.</li>
+    </ul>
+    <p class="section-titre">🤝 Solidarité</p>
+    <p>Si le camp adverse est vide, vous devez envoyer ≥ 7 graines chez lui.</p>
+    <p class="section-titre">⛔ Interdits</p>
+    <ul>
+      <li>Ne pas semer 1 ou 2 graines chez l'adversaire via sa case 7.</li>
+      <li>Ne pas vider complètement le camp adverse.</li>
+    </ul>
+    <p class="section-titre">🏁 Fin de partie</p>
+    <ul>
+      <li>Un joueur atteint ≥ 40 graines récoltées.</li>
+      <li>Moins de 10 graines sur le plateau.</li>
+      <li>Solidarité impossible.</li>
+    </ul>
+    <button class="modal-btn" onclick="fermerRegles()">Fermer</button>
+  </div>
 </div>
 
 <div class="info-tech">
@@ -414,13 +502,28 @@ function afficherErreur(msg) {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+function ouvrirRegles() {
+  document.getElementById('modal-regles').classList.add('visible');
+}
+function fermerRegles() {
+  document.getElementById('modal-regles').classList.remove('visible');
+}
+// Fermer en cliquant en dehors
+document.getElementById('modal-regles').addEventListener('click', function(e) {
+  if (e.target === this) fermerRegles();
+});
 </script>
 
   <!-- ══ Bannière installation PWA ══ -->
-  <div id="pwa-banner" style="display:none; position:fixed; bottom:0; left:0; right:0;
-    background:linear-gradient(135deg,#5C3317,#2C1A0E); border-top:2px solid #E8B84B;
-    padding:12px 20px; z-index:999; align-items:center; justify-content:space-between;
-    gap:12px; font-family:'Inter',sans-serif;">
+  <div id="pwa-banner" style="display:none; position:fixed; z-index:999; font-family:'Inter',sans-serif;
+    background:linear-gradient(135deg,#5C3317,#2C1A0E); border:1.5px solid #E8B84B;
+    padding:12px 16px; align-items:center; gap:12px;
+    /* Desktop : coin bas droite, largeur auto */
+    bottom:20px; right:20px; left:auto;
+    border-radius:14px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.5);
+    max-width:320px; width:calc(100% - 40px);">
     <div style="display:flex;align-items:center;gap:10px;">
       <img src="icons/icon-72.png" width="36" height="36" style="border-radius:8px;"/>
       <div>

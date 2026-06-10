@@ -302,6 +302,118 @@ $adversaire = ($role === 'sud') ? 'nord' : 'sud';
       .rangee { gap: 4px; }
       .tablier-wrapper { padding: 12px 7px; }
     }
+  
+    /* ── Animation graines en vol ── */
+    .graine-volante {
+      position: fixed;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 200;
+      transition: none;
+    }
+    .graine-volante.nord { background: radial-gradient(circle at 35% 35%, #EFE0C0, #C4A97A); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+    .graine-volante.sud  { background: radial-gradient(circle at 35% 35%, #6B3A1F, #2C1A0E); border: 1px solid rgba(139,94,60,0.6); }
+
+    /* ── Timer ── */
+    #timer-barre {
+      display: none;
+      max-width: 700px;
+      width: 100%;
+      margin: 0 auto 10px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    #timer-barre.visible { display: block; }
+    #timer-progress {
+      height: 100%;
+      width: 100%;
+      border-radius: 3px;
+      background: var(--or);
+      transition: width 1s linear, background 0.5s;
+    }
+    #timer-compte {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      min-height: 18px;
+      color: rgba(245,230,200,0.5);
+      transition: color 0.3s;
+    }
+    #timer-compte.urgent { color: #E74C3C; }
+  
+    /* ── Barre emojis ── */
+    #emoji-barre {
+      display: none;
+      max-width: 700px;
+      width: 100%;
+      margin: 12px auto 0;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(232,184,75,0.15);
+      border-radius: 14px;
+      padding: 10px 14px;
+      gap: 8px;
+      flex-direction: column;
+    }
+    #emoji-barre.visible { display: flex; }
+
+    .emoji-boutons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    .emoji-btn {
+      font-size: 1.4rem;
+      background: rgba(92,51,23,0.5);
+      border: 1.5px solid rgba(232,184,75,0.15);
+      border-radius: 10px;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .emoji-btn:hover { transform: scale(1.25); border-color: var(--or); background: rgba(232,184,75,0.12); }
+    .emoji-btn:active { transform: scale(0.95); }
+
+    /* Emojis flottants animés */
+    .emoji-flottant {
+      position: fixed;
+      font-size: 2rem;
+      pointer-events: none;
+      z-index: 300;
+      animation: monterEmoji 2.2s ease-out forwards;
+      user-select: none;
+    }
+    @keyframes monterEmoji {
+      0%   { opacity: 1;   transform: translateY(0)   scale(1); }
+      60%  { opacity: 1;   transform: translateY(-80px) scale(1.3); }
+      100% { opacity: 0;   transform: translateY(-140px) scale(0.8); }
+    }
+
+    /* Bulle réaction adverse */
+    .bulle-emoji {
+      position: fixed;
+      background: rgba(44,26,14,0.92);
+      border: 1.5px solid var(--or);
+      border-radius: 18px 18px 18px 4px;
+      padding: 6px 14px;
+      font-size: 1.5rem;
+      z-index: 300;
+      animation: apparaitreBulle 2.8s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes apparaitreBulle {
+      0%   { opacity: 0; transform: scale(0.5); }
+      15%  { opacity: 1; transform: scale(1.1); }
+      30%  { transform: scale(1); }
+      70%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(0.8) translateY(-20px); }
+    }
   </style>
 </head>
 <body>
@@ -337,6 +449,9 @@ $adversaire = ($role === 'sud') ? 'nord' : 'sud';
 </div>
 
 <!-- Tablier (caché si en attente) -->
+
+<div id="timer-compte"></div>
+<div id="timer-barre"><div id="timer-progress"></div></div>
 <div class="tablier-wrapper" id="tablier" style="display:none;">
   <div class="nums-rangee"  id="nums-nord"></div>
   <div class="rangee-label <?= $role === 'nord' ? 'moi' : '' ?>" id="label-nord">— JOUEUR NORD <?= $role === 'nord' ? '(Vous)' : '' ?> —</div>
@@ -349,6 +464,25 @@ $adversaire = ($role === 'sud') ? 'nord' : 'sud';
 
 <div class="actions" id="actions" style="display:none;">
   <button id="btn-quitter" onclick="window.location.href='index.php'">✕ Quitter</button>
+</div>
+
+
+<!-- Barre emojis -->
+<div id="emoji-barre">
+  <div class="emoji-boutons">
+    <button class="emoji-btn" onclick="envoyerEmoji('😂')">😂</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('😎')">😎</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('🔥')">🔥</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('😤')">😤</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('🤔')">🤔</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('😱')">😱</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('👏')">👏</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('😢')">😢</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('💪')">💪</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('🎉')">🎉</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('😴')">😴</button>
+    <button class="emoji-btn" onclick="envoyerEmoji('🤝')">🤝</button>
+  </div>
 </div>
 
 <div id="historique" style="display:none;">
@@ -377,10 +511,63 @@ const MON_ROLE   = <?= json_encode($role) ?>;
 const ADVERSAIRE = <?= json_encode($adversaire) ?>;
 const NB_CASES   = 7;
 
+
 let dernierEtat    = null;
 let enAnimation    = false;
 let pollingActif   = false;
 let intervalPolling = null;
+
+// ── Timer 60s ─────────────────────────────────────────────────────────────
+const DUREE_TOUR   = 60;  // secondes
+let timerInterval  = null;
+let timerRestant   = DUREE_TOUR;
+
+function demarrerTimer() {
+  arreterTimer();
+  timerRestant = DUREE_TOUR;
+  mettreAJourTimer();
+  document.getElementById('timer-barre').classList.add('visible');
+
+  timerInterval = setInterval(() => {
+    timerRestant--;
+    mettreAJourTimer();
+    if (timerRestant <= 0) {
+      arreterTimer();
+      jouerCoupAuto();
+    }
+  }, 1000);
+}
+
+function arreterTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  document.getElementById('timer-barre').classList.remove('visible');
+  document.getElementById('timer-compte').textContent = '';
+  document.getElementById('timer-compte').classList.remove('urgent');
+}
+
+function mettreAJourTimer() {
+  const pct = (timerRestant / DUREE_TOUR) * 100;
+  const bar = document.getElementById('timer-progress');
+  const lbl = document.getElementById('timer-compte');
+  bar.style.width = pct + '%';
+  bar.style.background = timerRestant <= 10 ? '#E74C3C' : timerRestant <= 20 ? '#E8B84B' : '#27AE60';
+  lbl.textContent = `⏱ ${timerRestant}s`;
+  lbl.classList.toggle('urgent', timerRestant <= 10);
+}
+
+function jouerCoupAuto() {
+  if (!dernierEtat || enAnimation) return;
+  // Choisir une case non vide au hasard
+  const casesDispos = [];
+  for (let i = 0; i < NB_CASES; i++) {
+    if (dernierEtat.plateau[MON_ROLE][i] > 0) casesDispos.push(i);
+  }
+  if (!casesDispos.length) return;
+  const idx = casesDispos[Math.floor(Math.random() * casesDispos.length)];
+  setStatut('⏱ Temps écoulé — coup automatique !', 'rouge');
+  setTimeout(() => jouerCoup(idx), 600);
+}
 
 /* ══════════════════════════════════════════════
    POLLING AJAX
@@ -401,6 +588,7 @@ function pollEtat() {
   ajax('etat_partie', { partie_id: PARTIE_ID }, function(data) {
     if (!data.succes) { setStatut('⚠️ Erreur de connexion', 'rouge'); return; }
     traiterEtat(data.etat);
+  if (data.etat && data.etat.emojis) traiterNouveauxEmojis(data.etat.emojis);
   });
 }
 
@@ -424,6 +612,7 @@ function traiterEtat(etat) {
   document.getElementById('tablier').style.display    = 'block';
   document.getElementById('actions').style.display    = 'flex';
   document.getElementById('historique').style.display = 'block';
+  document.getElementById('emoji-barre').classList.add('visible');
 
   rendrePlateau(etat);
   mettreAJourScores(etat);
@@ -439,6 +628,7 @@ function traiterEtat(etat) {
   if (etat.tour === MON_ROLE) {
     setStatut(etat.solidarite_requise ? '⚠️ Solidarité : vous devez alimenter l\'adversaire !' : '🎯 C\'est votre tour — choisissez une case', 'or');
   } else {
+    arreterTimer();
     const nomAdv = etat.tour === 'nord' ? (etat.joueur_nord || 'Joueur Nord') : etat.joueur_sud;
     setStatut(`⏳ Tour de ${nomAdv}…`);
   }
@@ -509,24 +699,124 @@ function rendrePlateau(etat) {
 function jouerCoup(idx) {
   if (enAnimation) return;
   enAnimation = true;
+  arreterTimer();
   arreterPolling();
 
-  // Animation locale : vider la case
+  // Récupérer le nombre de graines pour l'animation
+  const nbGraines = dernierEtat ? dernierEtat.plateau[MON_ROLE][idx] : 0;
+
+  // Highlight case source
   highlightCase(MON_ROLE, idx, 'selectionnee');
 
-  ajax('jouer_coup', { partie_id: PARTIE_ID, role: MON_ROLE, idx }, function(data) {
-    clearHighlight(MON_ROLE, idx, 'selectionnee');
-    enAnimation = false;
+  // Construire la séquence de distribution locale (pour l'animation)
+  const sequence = nbGraines > 0 ? construireSequenceClient(MON_ROLE, idx, nbGraines) : [];
 
-    if (!data.succes) {
-      setStatut('⚠️ ' + (data.message || 'Erreur.'), 'rouge');
-      demarrerPolling();
-      return;
-    }
+  // Lancer l'animation puis envoyer le coup au serveur
+  animerGraines(MON_ROLE, idx, sequence, nbGraines, function() {
+    ajax('jouer_coup', { partie_id: PARTIE_ID, role: MON_ROLE, idx }, function(data) {
+      clearHighlight(MON_ROLE, idx, 'selectionnee');
+      enAnimation = false;
 
-    traiterEtat(data.etat);
-    if (data.etat.statut !== 'termine') demarrerPolling();
+      if (!data.succes) {
+        setStatut('⚠️ ' + (data.message || 'Erreur.'), 'rouge');
+        demarrerPolling();
+        return;
+      }
+
+      traiterEtat(data.etat);
+      if (data.etat.statut !== 'termine') demarrerPolling();
+    });
   });
+}
+
+/* ── Animation graines volantes ──────────────────────────────────────────── */
+function animerGraines(joueur, idxDepart, sequence, nbGraines, callback) {
+  if (!sequence.length || nbGraines === 0) { callback(); return; }
+
+  const delai = Math.max(60, 280 - nbGraines * 6);
+  let i = 0;
+
+  function step() {
+    // Retirer le highlight de la case précédente
+    if (i > 0) clearHighlight(sequence[i-1].joueur, sequence[i-1].idx, 'selectionnee');
+    if (i === 0) clearHighlight(joueur, idxDepart, 'selectionnee');
+
+    if (i < sequence.length) {
+      const pos = sequence[i];
+      // Animer une graine volante entre la case source et la case cible
+      const src  = i === 0 ? getCaseElement(joueur, idxDepart) : getCaseElement(sequence[i-1].joueur, sequence[i-1].idx);
+      const dest = getCaseElement(pos.joueur, pos.idx);
+      if (src && dest) lancerGraineVolante(src, dest, joueur);
+
+      // Highlight la case cible
+      highlightCase(pos.joueur, pos.idx, 'selectionnee');
+      i++;
+      setTimeout(step, delai);
+    } else {
+      // Dernière case : highlight vert
+      const last = sequence[sequence.length - 1];
+      clearHighlight(last.joueur, last.idx, 'selectionnee');
+      highlightCase(last.joueur, last.idx, 'derniere');
+      setTimeout(() => {
+        clearHighlight(last.joueur, last.idx, 'derniere');
+        callback();
+      }, 350);
+    }
+  }
+
+  setTimeout(step, 80);
+}
+
+function lancerGraineVolante(srcEl, destEl, joueur) {
+  const sr = srcEl.getBoundingClientRect();
+  const dr = destEl.getBoundingClientRect();
+  const g  = document.createElement('div');
+  g.className = 'graine-volante ' + joueur;
+  g.style.left = (sr.left + sr.width/2 - 5) + 'px';
+  g.style.top  = (sr.top  + sr.height/2 - 5) + 'px';
+  document.body.appendChild(g);
+
+  // Animer avec requestAnimationFrame
+  const dx = (dr.left + dr.width/2  - 5) - (sr.left + sr.width/2  - 5);
+  const dy = (dr.top  + dr.height/2 - 5) - (sr.top  + sr.height/2 - 5);
+  const duree = 180;
+  const debut = performance.now();
+
+  function frame(t) {
+    const pct = Math.min((t - debut) / duree, 1);
+    const ease = pct < 0.5 ? 2*pct*pct : -1+(4-2*pct)*pct; // easeInOut
+    g.style.transform = `translate(${dx*ease}px, ${dy*ease}px) scale(${1 - ease*0.3})`;
+    if (pct < 1) requestAnimationFrame(frame);
+    else g.remove();
+  }
+  requestAnimationFrame(frame);
+}
+
+function getCaseElement(joueur, idx) {
+  const rangee = document.getElementById('rangee-' + joueur);
+  return rangee ? rangee.querySelectorAll('.case')[idx] : null;
+}
+
+/* ── Reconstruction de la séquence côté client (miroir de PHP) ────────────── */
+function construireSequenceClient(joueur, depart, nbGraines) {
+  const adversaire = joueur === 'sud' ? 'nord' : 'sud';
+  const seq = [];
+  let caseJ = depart, dansAdverse = false, distribues = 0, tourComplet = false;
+
+  while (distribues < nbGraines) {
+    if (!dansAdverse) {
+      caseJ--;
+      if (caseJ < 0) { dansAdverse = true; caseJ = 0; }
+    } else {
+      caseJ++;
+      if (caseJ >= NB_CASES) { dansAdverse = false; tourComplet = true; caseJ = NB_CASES - 1; }
+    }
+    const caseActuelle = dansAdverse ? adversaire : joueur;
+    if (tourComplet && caseActuelle === joueur && caseJ === depart) continue;
+    seq.push({ joueur: caseActuelle, idx: caseJ });
+    distribues++;
+  }
+  return seq;
 }
 
 /* ══════════════════════════════════════════════
@@ -597,10 +887,54 @@ function clearHighlight(joueur, idx, classe) {
 
 function ajax(action, params, callback) {
   const body = new URLSearchParams({ action, ...params });
-  fetch('ajax.php', { method: 'POST', body })
+  fetch('./ajax.php', { method: 'POST', body })
     .then(r => r.json())
     .then(callback)
     .catch(e => { setStatut('Erreur réseau', 'rouge'); });
+}
+
+
+/* ══════════════════════════════════════════════
+   EMOJIS EN TEMPS RÉEL
+   ══════════════════════════════════════════════ */
+
+let derniersEmojisVus = [];
+
+function envoyerEmoji(emoji) {
+  if (envoyerEmoji._cooldown) return;
+  envoyerEmoji._cooldown = true;
+  setTimeout(() => { envoyerEmoji._cooldown = false; }, 2000);
+  afficherEmojiFlottant(emoji, true);
+  ajax('envoyer_emoji', { partie_id: PARTIE_ID, role: MON_ROLE, emoji }, function(data) {
+    if (!data.succes) console.warn('Emoji refusé:', data.message);
+  });
+}
+
+function afficherEmojiFlottant(emoji, estMoi) {
+  const el = document.createElement('div');
+  if (estMoi) {
+    el.className = 'emoji-flottant';
+    el.textContent = emoji;
+    el.style.left   = (20 + Math.random() * (window.innerWidth - 80)) + 'px';
+    el.style.bottom = '120px';
+    el.style.top    = 'auto';
+  } else {
+    el.className = 'bulle-emoji';
+    el.textContent = emoji;
+    el.style.top   = '80px';
+    el.style.left  = (MON_ROLE === 'sud' ? '20px' : 'auto');
+    el.style.right = (MON_ROLE === 'nord' ? '20px' : 'auto');
+  }
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), estMoi ? 2200 : 2800);
+}
+
+function traiterNouveauxEmojis(emojis) {
+  if (!emojis || !emojis.length) return;
+  const vus = new Set(derniersEmojisVus.map(e => e.ts + e.role));
+  const nouveaux = emojis.filter(e => !vus.has(e.ts + e.role) && e.role !== MON_ROLE);
+  nouveaux.forEach(e => afficherEmojiFlottant(e.emoji, false));
+  derniersEmojisVus = emojis;
 }
 
 /* ── Démarrage ── */

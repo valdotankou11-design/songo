@@ -18,9 +18,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
 /* ══ Constantes ══════════════════════════════════════════════ */
-$dossier = sys_get_temp_dir() . '/songo_parties/';
-if (!is_dir($dossier)) mkdir($dossier, 0777, true);
-define('DOSSIER_PARTIES', $dossier);
+define('DOSSIER_PARTIES', __DIR__ . '/parties/');
 define('NB_CASES',     7);
 define('GRAINES_INIT', 5);
 define('SEUIL_FIN',    10);   // < 10 graines sur plateau → fin
@@ -38,6 +36,7 @@ switch ($action) {
   case 'lister_parties':  repondre(listerParties());  break;
   case 'etat_partie':     repondre(etatPartie());     break;
   case 'jouer_coup':      repondre(jouerCoup());      break;
+  case 'envoyer_emoji':   repondre(envoyerEmoji());   break;
   default:                repondre(['succes' => false, 'message' => 'Action inconnue.']);
 }
 
@@ -365,6 +364,30 @@ function determinerVainqueur($etat, $raison) {
   ];
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   ACTION : envoyer_emoji
+   ══════════════════════════════════════════════════════════════ */
+function envoyerEmoji() {
+  $partie_id = $_POST['partie_id'] ?? '';
+  $role      = $_POST['role']      ?? '';
+  $emoji     = $_POST['emoji']     ?? '';
+
+  // Liste blanche d'emojis autorisés
+  $autorises = ['😂','😎','🔥','😤','🤔','😱','👏','😢','💪','🎉','😴','🤝'];
+  if (!in_array($emoji, $autorises)) return ['succes' => false, 'message' => 'Emoji non autorisé.'];
+
+  $etat = chargerPartie($partie_id);
+  if (!$etat || $etat['statut'] === 'attente') return ['succes' => false, 'message' => 'Partie non active.'];
+
+  // Garder seulement les 10 derniers emojis
+  $etat['emojis'][] = ['role' => $role, 'emoji' => $emoji, 'ts' => time()];
+  if (count($etat['emojis']) > 10) $etat['emojis'] = array_slice($etat['emojis'], -10);
+
+  sauvegarderPartie($partie_id, $etat);
+  return ['succes' => true, 'emojis' => $etat['emojis']];
+}
+
 /* ══════════════════════════════════════════════════════════════
    GESTION DES FICHIERS JSON
    ══════════════════════════════════════════════════════════════ */
@@ -386,6 +409,7 @@ function etatInitial($partie_id, $nomSud, $code) {
     'solidarite_requise'  => false,
     'resultat'            => null,
     'historique'          => [],
+    'emojis'              => [],   // [{role, emoji, ts}] — derniers emojis envoyés
     'ts_creation'         => time(),
     'ts_debut'            => null,
     'ts_maj'              => time(),

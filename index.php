@@ -489,7 +489,7 @@ function chargerPartiesDisponibles() {
 /* ── Utilitaires ── */
 function ajax(action, params, callback) {
   const body = new URLSearchParams({ action, ...params });
-  fetch('ajax.php', { method: 'POST', body })
+  fetch('./ajax.php', { method: 'POST', body })
     .then(r => r.json())
     .then(callback)
     .catch(e => { afficherErreur('Erreur réseau : ' + e.message); });

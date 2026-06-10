@@ -418,6 +418,17 @@ $adversaire = ($role === 'sud') ? 'nord' : 'sud';
 </head>
 <body>
 
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  }
+  </script>
+
 <header>
   <h1>SONGO</h1>
   <div class="badge-role">Vous jouez : <?= strtoupper($role) ?> — <?= $nom ?></div>
@@ -620,6 +631,7 @@ function traiterEtat(etat) {
 
   if (etat.statut === 'termine') {
     arreterPolling();
+    arreterTimer();
     afficherFin(etat.resultat, etat);
     return;
   }
@@ -627,6 +639,7 @@ function traiterEtat(etat) {
   // Message de tour
   if (etat.tour === MON_ROLE) {
     setStatut(etat.solidarite_requise ? '⚠️ Solidarité : vous devez alimenter l\'adversaire !' : '🎯 C\'est votre tour — choisissez une case', 'or');
+    if (!enAnimation) demarrerTimer();
   } else {
     arreterTimer();
     const nomAdv = etat.tour === 'nord' ? (etat.joueur_nord || 'Joueur Nord') : etat.joueur_sud;
@@ -965,7 +978,7 @@ demarrerPolling();
   /* ── Enregistrement du Service Worker ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
+      // SW désactivé temporairement — navigator.serviceWorker.register('/sw.js')
         .then(reg => {
           console.log('[PWA] Service Worker enregistré :', reg.scope);
           // Proposer la mise à jour si nouvelle version disponible

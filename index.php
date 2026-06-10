@@ -298,6 +298,24 @@ session_start();
 </head>
 <body>
 
+  <script>
+  /* ── Tuer tous les anciens Service Workers au chargement ── */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => {
+        reg.unregister();
+        console.log('[SW] Désinstallé:', reg.scope);
+      });
+    });
+    // Vider tous les caches
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(k => { caches.delete(k); console.log('[Cache] Supprimé:', k); });
+      });
+    }
+  }
+  </script>
+
 <header>
   <h1>SONGO</h1>
   <p>Songo · Multijoueur · Ajax</p>
@@ -543,7 +561,7 @@ document.getElementById('modal-regles').addEventListener('click', function(e) {
   /* ── Enregistrement du Service Worker ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
+      // SW désactivé temporairement — navigator.serviceWorker.register('/sw.js')
         .then(reg => {
           console.log('[PWA] Service Worker enregistré :', reg.scope);
           // Proposer la mise à jour si nouvelle version disponible

@@ -1,168 +1,102 @@
 /**
  * SONGO — Service Worker (PWA)
- * Stratégie : Cache-First pour les assets statiques,
- *             Network-First pour les requêtes Ajax (état du jeu).
+ * Règle simple et robuste :
+ *   - ajax.php → TOUJOURS réseau, jamais de cache
+ *   - Fonts    → Cache-First
+ *   - Reste    → Network-First avec fallback cache
  */
 
-const CACHE_NAME    = 'songo-v1.0.0';
-const AJAX_URL      = 'ajax.php';
+const CACHE_NAME = 'songo-v2.0.0';
 
-// Assets statiques à mettre en cache à l'installation
 const ASSETS_STATIQUES = [
-  '/songo_v2/',
-  '/songo_v2/index.php',
-  '/songo_v2/jeu.php',
-  '/songo_v2/manifest.json',
-  '/songo_v2/icons/icon-192.png',
-  '/songo_v2/icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap',
+  '/',
+  '/index.php',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
-/* ══════════════════════════════════════════════
-   INSTALLATION — mise en cache des assets
-   ══════════════════════════════════════════════ */
+/* ── INSTALLATION ─────────────────────────────────────────────────────────── */
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Installation — mise en cache des assets');
-      // On met en cache les assets critiques, on ignore les erreurs individuelles
-      return Promise.allSettled(
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(
         ASSETS_STATIQUES.map(url =>
-          cache.add(url).catch(e => console.warn('[SW] Impossible de cacher:', url, e.message))
+          cache.add(url).catch(e => console.warn('[SW] Cache raté:', url))
         )
-      );
-    }).then(() => self.skipWaiting())
+      )
+    ).then(() => self.skipWaiting())
   );
 });
 
-/* ══════════════════════════════════════════════
-   ACTIVATION — nettoyage des anciens caches
-   ══════════════════════════════════════════════ */
+/* ── ACTIVATION — purge anciens caches ───────────────────────────────────── */
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => {
-            console.log('[SW] Suppression ancien cache:', key);
-            return caches.delete(key);
-          })
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-/* ══════════════════════════════════════════════
-   FETCH — stratégie de cache
-   ══════════════════════════════════════════════ */
+/* ── FETCH ────────────────────────────────────────────────────────────────── */
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // ── Requêtes Ajax (ajax.php) → Network-First ──────────────────────────
-  // On veut toujours l'état le plus récent du jeu.
-  // Si réseau indisponible, on retourne une réponse d'erreur JSON propre.
-  if (url.pathname.includes(AJAX_URL)) {
-    event.respondWith(networkFirst(event.request));
+  // ── ajax.php → RÉSEAU PUR, jamais de cache ────────────────────────────
+  // C'est la règle la plus importante : on ne cache JAMAIS les réponses Ajax
+  if (url.pathname.includes('ajax.php')) {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        new Response(
+          JSON.stringify({ succes: false, message: 'Hors ligne.', offline: true }),
+          { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+        )
+      )
+    );
     return;
   }
 
-  // ── Fonts Google → Cache-First (évite les requêtes réseau répétées) ───
+  // ── Fonts Google → Cache-First ────────────────────────────────────────
   if (url.hostname.includes('fonts.googleapis.com') ||
       url.hostname.includes('fonts.gstatic.com')) {
     event.respondWith(cacheFirst(event.request));
     return;
   }
 
-  // ── Pages PHP et assets locaux → Stale-While-Revalidate ───────────────
-  // Sert depuis le cache immédiatement, met à jour en arrière-plan.
-  if (url.pathname.startsWith('/songo_v2/')) {
-    event.respondWith(staleWhileRevalidate(event.request));
-    return;
-  }
+  // ── Tout le reste → Network-First ────────────────────────────────────
+  event.respondWith(networkFirst(event.request));
 });
 
-/* ══════════════════════════════════════════════
-   STRATÉGIES DE CACHE
-   ══════════════════════════════════════════════ */
-
-/**
- * Network-First : essaie le réseau, fallback cache.
- * Pour ajax.php : si hors-ligne, retourne un JSON d'erreur clair.
- */
-async function networkFirst(request) {
+/* ── STRATÉGIES ──────────────────────────────────────────────────────────── */
+async function networkFirst(req) {
   try {
-    const reponseReseau = await fetch(request);
-    // Mettre en cache la réponse réussie
-    if (reponseReseau.ok) {
+    const res = await fetch(req);
+    if (res.ok) {
       const cache = await caches.open(CACHE_NAME);
-      cache.put(request, reponseReseau.clone());
+      cache.put(req, res.clone());
     }
-    return reponseReseau;
-  } catch (err) {
-    // Réseau indisponible
-    const cached = await caches.match(request);
-    if (cached) return cached;
-
-    // Aucun cache dispo : retourner une réponse JSON d'erreur
-    return new Response(
-      JSON.stringify({
-        succes: false,
-        message: 'Hors ligne. Vérifiez votre connexion réseau.',
-        offline: true,
-      }),
-      {
-        status: 503,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      }
-    );
+    return res;
+  } catch {
+    const cached = await caches.match(req);
+    return cached || new Response('Hors ligne', { status: 503 });
   }
 }
 
-/**
- * Cache-First : sert depuis le cache, réseau si absent.
- * Idéal pour les fonts et ressources immuables.
- */
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
+async function cacheFirst(req) {
+  const cached = await caches.match(req);
   if (cached) return cached;
-
   try {
-    const reponseReseau = await fetch(request);
-    if (reponseReseau.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, reponseReseau.clone());
-    }
-    return reponseReseau;
-  } catch (err) {
-    return new Response('Ressource indisponible hors ligne.', { status: 503 });
+    const res = await fetch(req);
+    if (res.ok) (await caches.open(CACHE_NAME)).put(req, res.clone());
+    return res;
+  } catch {
+    return new Response('Hors ligne', { status: 503 });
   }
 }
 
-/**
- * Stale-While-Revalidate : sert le cache immédiatement,
- * met à jour en arrière-plan pour la prochaine visite.
- */
-async function staleWhileRevalidate(request) {
-  const cache  = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-
-  const fetchPromise = fetch(request).then(reponse => {
-    if (reponse.ok) cache.put(request, reponse.clone());
-    return reponse;
-  }).catch(() => null);
-
-  return cached || fetchPromise;
-}
-
-/* ══════════════════════════════════════════════
-   MESSAGES depuis le client
-   ══════════════════════════════════════════════ */
+/* ── MESSAGES ────────────────────────────────────────────────────────────── */
 self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
-  }
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });

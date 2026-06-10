@@ -524,6 +524,7 @@ const NB_CASES   = 7;
 
 
 let dernierEtat    = null;
+let dernierTour    = null; // pour éviter de relancer le timer à chaque poll
 let enAnimation    = false;
 let pollingActif   = false;
 let intervalPolling = null;
@@ -632,6 +633,7 @@ function traiterEtat(etat) {
   if (etat.statut === 'termine') {
     arreterPolling();
     arreterTimer();
+    dernierTour = null;
     afficherFin(etat.resultat, etat);
     return;
   }
@@ -639,12 +641,15 @@ function traiterEtat(etat) {
   // Message de tour
   if (etat.tour === MON_ROLE) {
     setStatut(etat.solidarite_requise ? '⚠️ Solidarité : vous devez alimenter l\'adversaire !' : '🎯 C\'est votre tour — choisissez une case', 'or');
-    if (!enAnimation) demarrerTimer();
+    if (!enAnimation && dernierTour !== MON_ROLE) demarrerTimer();
   } else {
-    arreterTimer();
+    if (dernierTour === MON_ROLE) arreterTimer();
     const nomAdv = etat.tour === 'nord' ? (etat.joueur_nord || 'Joueur Nord') : etat.joueur_sud;
     setStatut(`⏳ Tour de ${nomAdv}…`);
   }
+
+  // Mémoriser le tour courant
+  dernierTour = etat.tour;
 
   // Activer/désactiver les cartes de score
   document.getElementById('card-nord').classList.toggle('actif', etat.tour === 'nord');

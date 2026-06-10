@@ -18,7 +18,9 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
 /* ══ Constantes ══════════════════════════════════════════════ */
-define('DOSSIER_PARTIES', __DIR__ . '/parties/');
+$dossier = sys_get_temp_dir() . '/songo_parties/';
+if (!is_dir($dossier)) mkdir($dossier, 0777, true);
+define('DOSSIER_PARTIES', $dossier);
 define('NB_CASES',     7);
 define('GRAINES_INIT', 5);
 define('SEUIL_FIN',    10);   // < 10 graines sur plateau → fin

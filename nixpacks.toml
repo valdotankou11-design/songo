@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["php82", "php82Extensions.json", "php82Extensions.opcache"]
+
+[phases.build]
+cmds = ["mkdir -p parties && chmod 777 parties"]
+
+[start]
+cmd = "php -S 0.0.0.0:$PORT"

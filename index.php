@@ -561,7 +561,7 @@ document.getElementById('modal-regles').addEventListener('click', function(e) {
   /* ── Enregistrement du Service Worker ── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // SW désactivé temporairement — navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register('/sw.js')
         .then(reg => {
           console.log('[PWA] Service Worker enregistré :', reg.scope);
           // Proposer la mise à jour si nouvelle version disponible

@@ -243,6 +243,9 @@ session_start();
       color: #27AE60;
       border: 1px solid rgba(39,174,96,0.3);
     }
+    footer {
+      color: rgba(245,230,200,0.5);
+    }
   
     /* ── Bouton Règles ── */
     .btn-regles {
@@ -602,5 +605,10 @@ document.getElementById('modal-regles').addEventListener('click', function(e) {
     });
   }
   </script>
+
+  <footer>
+    © 2026 SOH TANKOU Joël Valdo - Créateur du jeu Songo
+  </footer>
+
 </body>
 </html>

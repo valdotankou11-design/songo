@@ -521,6 +521,35 @@ const PARTIE_ID  = <?= json_encode($partie_id) ?>;
 const MON_ROLE   = <?= json_encode($role) ?>;
 const ADVERSAIRE = <?= json_encode($adversaire) ?>;
 const NB_CASES   = 7;
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function jouerSonGraine() {
+  try {
+    const ctx = getAudioCtx();
+    const bufSize = ctx.sampleRate * 0.06;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bpf = ctx.createBiquadFilter();
+    bpf.type = 'bandpass';
+    bpf.frequency.value = 800 + Math.random() * 200;
+    bpf.Q.value = 1.5;
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0.55, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    src.connect(bpf);
+    bpf.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+    src.stop(now + 0.06);
+  } catch(e) {}
+}
 
 
 let dernierEtat    = null;
@@ -767,6 +796,7 @@ function animerGraines(joueur, idxDepart, sequence, nbGraines, callback) {
       if (src && dest) lancerGraineVolante(src, dest, joueur);
 
       // Highlight la case cible
+      jouerSonGraine();
       highlightCase(pos.joueur, pos.idx, 'selectionnee');
       i++;
       setTimeout(step, delai);
@@ -823,11 +853,11 @@ function construireSequenceClient(joueur, depart, nbGraines) {
 
   while (distribues < nbGraines) {
     if (!dansAdverse) {
-      caseJ--;
-      if (caseJ < 0) { dansAdverse = true; caseJ = 0; }
-    } else {
       caseJ++;
-      if (caseJ >= NB_CASES) { dansAdverse = false; tourComplet = true; caseJ = NB_CASES - 1; }
+      if (caseJ >= NB_CASES) { dansAdverse = true; caseJ = NB_CASES - 1; }
+    } else {
+      caseJ--;
+      if (caseJ < 0) { dansAdverse = false; tourComplet = true; caseJ = 0; }
     }
     const caseActuelle = dansAdverse ? adversaire : joueur;
     if (tourComplet && caseActuelle === joueur && caseJ === depart) continue;

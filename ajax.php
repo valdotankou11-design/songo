@@ -211,17 +211,17 @@ function construireSequence($joueur, $depart, $nbGraines, $plateau) {
 
   while ($distribues < $nbGraines) {
     if (!$dansAdverse) {
-      $caseJ--;
-      if ($caseJ < 0) {
-        $dansAdverse = true;
-        $caseJ = 0;
-      }
-    } else {
       $caseJ++;
       if ($caseJ >= NB_CASES) {
+        $dansAdverse = true;
+        $caseJ = NB_CASES - 1;
+      }
+    } else {
+      $caseJ--;
+      if ($caseJ < 0) {
         $dansAdverse = false;
         $tourComplet = true;
-        $caseJ = NB_CASES - 1;
+        $caseJ = 0;
       }
     }
 

@@ -607,6 +607,9 @@ document.getElementById('modal-regles').addEventListener('click', function(e) {
   </script>
 
   <footer>
+    <br>
+    <br>
+    <br>
     © 2026 SOH TANKOU Joël Valdo - Créateur du jeu Songo
   </footer>
 

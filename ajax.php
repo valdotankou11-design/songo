@@ -267,14 +267,15 @@ function effectuerPrises($joueur, $adversaire, $sequence, &$etat) {
   $totalPris    = 0;
   $casesPrisees = [];
   $idxChaine    = $derniere['idx'];
+  $sudJoue      = ($joueur === 'sud');
 
-  while ($idxChaine >= 0) {
+  while ($idxChaine >= 0 && $idxChaine < NB_CASES) {
     $nb = $etat['plateau'][$adversaire][$idxChaine];
 
     // Condition de prise : 2 ≤ nb ≤ 4
     if ($nb >= 2 && $nb <= 4) {
       // Case d'indice 0 (case 1 adverse) : prise seulement en chaîne, pas si c'est la seule
-      if ($idxChaine === 0 && $idxChaine === $derniere['idx']) {
+      if ($idxChaine === $derniere['idx'] && ($idxChaine === NB_CASES - 1 || $idxChaine === 0)) {
         if (count($sequence) >= NB_CASES * 2) { // tour complet
           $casesPrisees[] = ['idx' => $idxChaine, 'nb' => 1];
           $totalPris += 1;
@@ -283,7 +284,7 @@ function effectuerPrises($joueur, $adversaire, $sequence, &$etat) {
       }
       $casesPrisees[] = ['idx' => $idxChaine, 'nb' => $nb];
       $totalPris      += $nb;
-      $idxChaine--;
+      $idxChaine = $sudJoue ? $idxChaine + 1 : $idxChaine - 1;
     } else {
       break;
     }

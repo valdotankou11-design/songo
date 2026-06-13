@@ -551,12 +551,12 @@ function jouerSonGraine() {
   } catch(e) {}
 }
 
-
-let dernierEtat    = null;
-let dernierTour    = null; // pour éviter de relancer le timer à chaque poll
-let enAnimation    = false;
-let pollingActif   = false;
+let dernierEtat     = null;
+let dernierTour     = null; // pour éviter de relancer le timer à chaque poll
+let enAnimation     = false;
+let pollingActif    = false;
 let intervalPolling = null;
+let dernierHistoLen = 0;   // pour détecter un nouveau coup adverse
 
 // ── Timer 60s ─────────────────────────────────────────────────────────────
 const DUREE_TOUR   = 60;  // secondes
@@ -626,10 +626,27 @@ function arreterPolling() {
 }
 
 function pollEtat() {
-  ajax('etat_partie', { partie_id: PARTIE_ID }, function(data) {
+  if (enAnimation) return;
+  ajax('etat_partie', { partie_id: PARTIE_ID }, async function(data) {
     if (!data.succes) { setStatut('⚠️ Erreur de connexion', 'rouge'); return; }
-    traiterEtat(data.etat);
-  if (data.etat && data.etat.emojis) traiterNouveauxEmojis(data.etat.emojis);
+    const etat    = data.etat;
+    const histLen = (etat.historique || []).length;
+
+    // Détecter un nouveau coup adverse et l'animer
+    if (histLen > dernierHistoLen && dernierEtat !== null && etat.statut === 'en_cours') {
+      const dernierCoup = etat.historique[etat.historique.length - 1];
+      if (dernierCoup && dernierCoup.joueur !== MON_ROLE && dernierCoup.sequence?.length > 0) {
+        enAnimation = true;
+        arreterPolling();
+        await animerGrainesAsync(dernierCoup.joueur, dernierCoup.idx, dernierCoup.sequence);
+        enAnimation = false;
+      }
+    }
+
+    dernierHistoLen = histLen;
+    traiterEtat(etat);
+    if (etat.emojis) traiterNouveauxEmojis(etat.emojis);
+    if (etat.statut !== 'termine') demarrerPolling();
   });
 }
 
@@ -695,11 +712,12 @@ function rendrePlateau(etat) {
     rangee.innerHTML = '';
     nums.innerHTML   = '';
 
-    for (let i = 0; i < NB_CASES; i++) {
-      // Numérotation
+    for (let col = 0; col < NB_CASES; col++) {
+      const i = joueur === 'sud' ? (NB_CASES - 1 - col) : col;
+      // Numérotation 1→7 de gauche à droite pour les deux joueurs
       const numDiv = document.createElement('div');
       numDiv.className = 'num-case';
-      numDiv.textContent = joueur === 'nord' ? (i+1) : (NB_CASES - i);
+      numDiv.textContent = col + 1;
       nums.appendChild(numDiv);
 
       // Case
@@ -842,7 +860,8 @@ function lancerGraineVolante(srcEl, destEl, joueur) {
 
 function getCaseElement(joueur, idx) {
   const rangee = document.getElementById('rangee-' + joueur);
-  return rangee ? rangee.querySelectorAll('.case')[idx] : null;
+  if (!rangee) return null;
+  return [...rangee.querySelectorAll('.case')].find(c => parseInt(c.dataset.idx) === idx) || null;
 }
 
 /* ── Reconstruction de la séquence côté client (miroir de PHP) ────────────── */
@@ -853,9 +872,11 @@ function construireSequenceClient(joueur, depart, nbGraines) {
 
   while (distribues < nbGraines) {
     if (!dansAdverse) {
+      // Camp du joueur : index croissant
       caseJ++;
       if (caseJ >= NB_CASES) { dansAdverse = true; caseJ = NB_CASES - 1; }
     } else {
+      // Camp adverse : index décroissant
       caseJ--;
       if (caseJ < 0) { dansAdverse = false; tourComplet = true; caseJ = 0; }
     }
@@ -865,6 +886,13 @@ function construireSequenceClient(joueur, depart, nbGraines) {
     distribues++;
   }
   return seq;
+}
+
+/* ── Version async de l'animation (pour le coup adverse via polling) ── */
+function animerGrainesAsync(joueur, idxDepart, sequence) {
+  return new Promise(resolve => {
+    animerGraines(joueur, idxDepart, sequence, sequence.length, resolve);
+  });
 }
 
 /* ══════════════════════════════════════════════

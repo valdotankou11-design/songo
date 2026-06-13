@@ -158,11 +158,13 @@ function jouerCoup() {
 
   // ── Enregistrer le coup dans l'historique ─────────────────
   $etat['historique'][] = [
-    'joueur'  => $role,
-    'case'    => $idx + 1,
-    'graines' => $graines,
-    'prises'  => $prises,
-    'ts'      => time(),
+    'joueur'   => $role,
+    'case'     => $idx + 1,
+    'idx'      => $idx,
+    'graines'  => $graines,
+    'prises'   => $prises,
+    'ts'       => time(),
+    'sequence' => $sequence,
   ];
 
   // ── Vérifier fin de partie ─────────────────────────────────
@@ -202,8 +204,9 @@ function construireSequence($joueur, $depart, $nbGraines, $plateau) {
   $adversaire = ($joueur === 'sud') ? 'nord' : 'sud';
   $seq        = [];
 
-  // Parcours : propre camp droite→gauche (depuis depart-1 jusqu'à 0),
-  //            puis camp adverse gauche→droite (0 → 6), et ainsi de suite.
+  // Parcours anti-horaire vu du Sud :
+  // Sud  : index croissant  (0→6), puis passage au Nord index 6
+  // Nord : index décroissant (6→0), puis retour au Sud index 0
   $caseJ       = $depart;
   $dansAdverse = false;
   $distribues  = 0;
@@ -211,17 +214,19 @@ function construireSequence($joueur, $depart, $nbGraines, $plateau) {
 
   while ($distribues < $nbGraines) {
     if (!$dansAdverse) {
+      // Camp du joueur qui joue : index croissant
       $caseJ++;
       if ($caseJ >= NB_CASES) {
         $dansAdverse = true;
-        $caseJ = NB_CASES - 1;
+        $caseJ = NB_CASES - 1; // entre dans le camp adverse par son index 6
       }
     } else {
+      // Camp adverse : index décroissant
       $caseJ--;
       if ($caseJ < 0) {
         $dansAdverse = false;
         $tourComplet = true;
-        $caseJ = 0;
+        $caseJ = 0; // retour dans son camp par l'index 0
       }
     }
 

@@ -870,16 +870,18 @@ function construireSequenceClient(joueur, depart, nbGraines) {
   const seq = [];
   let caseJ = depart, dansAdverse = false, distribues = 0, tourComplet = false;
 
+  const sudJoue = (joueur === 'sud');
   while (distribues < nbGraines) {
     if (!dansAdverse) {
-      // Camp du joueur : index croissant
-      caseJ++;
-      if (caseJ >= NB_CASES) { dansAdverse = true; caseJ = NB_CASES - 1; }
+      caseJ = sudJoue ? caseJ + 1 : caseJ - 1;
+      if (sudJoue && caseJ >= NB_CASES) { dansAdverse = true; caseJ = NB_CASES - 1; }
+      else if (!sudJoue && caseJ < 0)   { dansAdverse = true; caseJ = 0; }
     } else {
-      // Camp adverse : index décroissant
-      caseJ--;
-      if (caseJ < 0) { dansAdverse = false; tourComplet = true; caseJ = 0; }
+      caseJ = sudJoue ? caseJ - 1 : caseJ + 1;
+      if (sudJoue && caseJ < 0)             { dansAdverse = false; tourComplet = true; caseJ = 0; }
+      else if (!sudJoue && caseJ >= NB_CASES){ dansAdverse = false; tourComplet = true; caseJ = NB_CASES - 1; }
     }
+
     const caseActuelle = dansAdverse ? adversaire : joueur;
     if (tourComplet && caseActuelle === joueur && caseJ === depart) continue;
     seq.push({ joueur: caseActuelle, idx: caseJ });

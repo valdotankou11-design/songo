@@ -205,28 +205,36 @@ function construireSequence($joueur, $depart, $nbGraines, $plateau) {
   $seq        = [];
 
   // Parcours anti-horaire vu du Sud :
-  // Sud  : index croissant  (0→6), puis passage au Nord index 6
-  // Nord : index décroissant (6→0), puis retour au Sud index 0
+  // Sud  : index croissant  (0→6), puis Nord index décroissant (6→0)
+  // Nord : index décroissant (6→0), puis Sud index croissant  (0→6)
   $caseJ       = $depart;
   $dansAdverse = false;
   $distribues  = 0;
   $tourComplet = false;
+  $sudJoue     = ($joueur === 'sud');
 
   while ($distribues < $nbGraines) {
     if (!$dansAdverse) {
-      // Camp du joueur qui joue : index croissant
-      $caseJ++;
-      if ($caseJ >= NB_CASES) {
+      // Dans son propre camp
+      $caseJ = $sudJoue ? $caseJ + 1 : $caseJ - 1;
+      if ($sudJoue && $caseJ >= NB_CASES) {
         $dansAdverse = true;
-        $caseJ = NB_CASES - 1; // entre dans le camp adverse par son index 6
+        $caseJ = NB_CASES - 1; // entre chez le Nord par son index 6
+      } elseif (!$sudJoue && $caseJ < 0) {
+        $dansAdverse = true;
+        $caseJ = 0; // entre chez le Sud par son index 0
       }
     } else {
-      // Camp adverse : index décroissant
-      $caseJ--;
-      if ($caseJ < 0) {
+      // Dans le camp adverse
+      $caseJ = $sudJoue ? $caseJ - 1 : $caseJ + 1;
+      if ($sudJoue && $caseJ < 0) {
         $dansAdverse = false;
         $tourComplet = true;
-        $caseJ = 0; // retour dans son camp par l'index 0
+        $caseJ = 0;
+      } elseif (!$sudJoue && $caseJ >= NB_CASES) {
+        $dansAdverse = false;
+        $tourComplet = true;
+        $caseJ = NB_CASES - 1;
       }
     }
 

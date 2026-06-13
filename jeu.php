@@ -713,7 +713,7 @@ function rendrePlateau(etat) {
     nums.innerHTML   = '';
 
     for (let col = 0; col < NB_CASES; col++) {
-      const i = joueur === 'sud' ? (NB_CASES - 1 - col) : col;
+      const i = col;
       // Numérotation 1→7 de gauche à droite pour les deux joueurs
       const numDiv = document.createElement('div');
       numDiv.className = 'num-case';
